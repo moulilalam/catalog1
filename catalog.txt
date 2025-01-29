@@ -1,0 +1,65 @@
+import org.json.JSONObject;
+import java.io.FileReader;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
+
+public class ShamirSecretSharing {
+
+    public static void main(String[] args) {
+        try {
+            FileReader reader = new FileReader("input.json");
+            StringBuilder jsonData = new StringBuilder();
+            int data;
+            while ((data = reader.read()) != -1) {
+                jsonData.append((char) data);
+            }
+            reader.close();
+
+            JSONObject jsonObject = new JSONObject(jsonData.toString());
+            int k = jsonObject.getInt("k");
+
+            List<BigInteger> xValues = new ArrayList<>();
+            List<BigInteger> yValues = new ArrayList<>();
+
+            for (String key : jsonObject.keySet()) {
+                if (key.matches("\\d+")) {
+                    JSONObject point = jsonObject.getJSONObject(key);
+                    String base = point.getString("base");
+                    String value = point.getString("value");
+
+                    BigInteger yValue = new BigInteger(value, Integer.parseInt(base));
+                    xValues.add(new BigInteger(key));
+                    yValues.add(yValue);
+                }
+            }
+
+            BigInteger secret = calculateSecret(xValues, yValues, k);
+            System.out.println("Secret: " + secret);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static BigInteger calculateSecret(List<BigInteger> xValues, List<BigInteger> yValues, int k) {
+        BigInteger secret = BigInteger.ZERO;
+
+        for (int i = 0; i < k; i++) {
+            BigInteger numerator = BigInteger.ONE;
+            BigInteger denominator = BigInteger.ONE;
+
+            for (int j = 0; j < k; j++) {
+                if (i != j) {
+                    numerator = numerator.multiply(xValues.get(j).negate());
+                    denominator = denominator.multiply(xValues.get(i).subtract(xValues.get(j)));
+                }
+            }
+
+            BigInteger term = yValues.get(i).multiply(numerator).divide(denominator);
+            secret = secret.add(term);
+        }
+
+        return secret.abs();
+    }
+}
